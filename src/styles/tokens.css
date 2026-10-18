@@ -1,0 +1,86 @@
+:root {
+  --font-serif: 'Cormorant Garamond', 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', Palatino, Georgia, serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+
+  --fs-xs: 0.75rem;
+  --fs-sm: 0.875rem;
+  --fs-md: 1rem;
+  --fs-lg: 1.2rem;
+  --fs-xl: 1.65rem;
+  --fs-2xl: 2.3rem;
+  --fs-3xl: clamp(2.4rem, 5.2vw, 3.7rem);
+
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+  --sp-8: 72px;
+
+  --radius: 3px;
+  --radius-lg: 6px;
+  --ease: cubic-bezier(0.22, 0.8, 0.24, 1);
+  --header-h: 64px;
+  --nav-h: 0px;
+}
+
+/* ------------------------------ light: parchment & espresso ------------------------------ */
+:root,
+:root[data-theme='light'] {
+  --paper: #f4ecdc;
+  --paper-2: #ece0c8;
+  --paper-3: #e2d3b2;
+  --surface: #faf5e8;
+  --surface-2: #fffdf6;
+  --ink: #2a1a14;
+  --ink-soft: #55402f;
+  --ink-faint: #6f5b4b;
+  --line: rgba(74, 45, 30, 0.2);
+  --line-strong: rgba(74, 45, 30, 0.4);
+  --burgundy: #6b1d2e;
+  --on-burgundy: #f9f0de;
+  --plum: #4a1f3d;
+  --rose: #b36b78;
+  --gold: #8c6a1f;
+  --gold-bright: #c19a43;
+  --danger: #9b2226;
+  --ok: #3f6b4a;
+  --wood-1: #6d4731;
+  --wood-2: #4a2f1f;
+  --wood-3: #2b190f;
+  --scrim: rgba(24, 12, 8, 0.72);
+  --shadow: 40 20 10;
+  --grain: 0.07;
+  color-scheme: light;
+}
+
+/* ------------------------------ dark: the library after hours ------------------------------ */
+:root[data-theme='dark'] {
+  --paper: #17100e;
+  --paper-2: #1f1613;
+  --paper-3: #2a1d19;
+  --surface: #221916;
+  --surface-2: #2c211d;
+  --ink: #f0e4cc;
+  --ink-soft: #d3c0a2;
+  --ink-faint: #a08e77;
+  --line: rgba(240, 224, 196, 0.16);
+  --line-strong: rgba(240, 224, 196, 0.36);
+  --burgundy: #d98a9a;
+  --on-burgundy: #1c0f11;
+  --plum: #b98ab0;
+  --rose: #d49aa5;
+  --gold: #d6b25c;
+  --gold-bright: #e6c877;
+  --danger: #ef8a8d;
+  --ok: #8cc79a;
+  --wood-1: #4e3324;
+  --wood-2: #33200f;
+  --wood-3: #190e08;
+  --scrim: rgba(6, 3, 2, 0.8);
+  --shadow: 0 0 0;
+  --grain: 0.05;
+  color-scheme: dark;
+}
