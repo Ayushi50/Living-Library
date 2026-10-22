@@ -78,8 +78,9 @@ export function Library({ bookId }: { bookId?: string }) {
     if (prefs.shelfGroup === 'all') return [{ id: 'all', title: 'The whole collection', books: filtered }];
     const out = shelves.map((s) => ({ id: s.id, title: s.name, books: filtered.filter((b) => b.shelfIds.includes(s.id)) }));
     const loose = filtered.filter((b) => !b.shelfIds.length);
-    const result = out.filter((r) => r.books.length || !filtering);
-    if (loose.length) result.push({ id: 'unshelved', title: shelves.length ? 'Not yet shelved' : 'Your books', books: loose });
+    // Empty shelves stay out of the bookcase (they're still in the shelf manager) to keep it minimal.
+    const result = out.filter((r) => r.books.length);
+    if (loose.length) result.push({ id: 'unshelved', title: result.length ? 'Not yet shelved' : 'Your books', books: loose });
     return result;
   }, [filtered, shelves, prefs.shelfGroup, filtering]);
 

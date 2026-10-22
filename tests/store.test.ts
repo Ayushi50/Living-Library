@@ -312,3 +312,26 @@ test('identical data is not uploaded again and failed saves retry on their own',
   await s.flush();
   assert.equal(saves, 1);
 });
+
+test('a guest library is merged into the account on load, skipping duplicates', async () => {
+  const guestStore = new Store(new MemoryAdapter(), 0);
+  await guestStore.init();
+  guestStore.addBook({ title: 'Only on this browser', author: 'A' });
+  guestStore.addBook({ title: 'Already in account', author: 'B' });
+  const accountStore = new Store(new MemoryAdapter(), 0);
+  await accountStore.init();
+  accountStore.addBook({ title: 'Already in account', author: 'B' });
+
+  let resolved = false;
+  const adapter = {
+    name: 'account',
+    load: async () => ({ data: JSON.parse(JSON.stringify(accountStore.data)), guest: JSON.parse(JSON.stringify(guestStore.data)) }),
+    save: async () => {},
+    resolveGuest: () => { resolved = true; },
+  };
+  const s = new Store(adapter as never, 0);
+  await s.init();
+  assert.deepEqual(s.data.books.map((b) => b.title).sort(), ['Already in account', 'Only on this browser']);
+  assert.equal(resolved, true);
+  assert.match(s.meta.notice ?? '', /Added 1 item/);
+});

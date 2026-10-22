@@ -75,7 +75,7 @@ export class SupabaseStorageAdapter implements StorageAdapter {
       return {
         data: cached.data,
         unsynced: cached.dirty,
-        notice: 'You appear to be offline. Showing the copy saved on this device; changes will sync when you reconnect.',
+        notice: 'You’re offline. Your changes are kept on this device and will sync when you reconnect.',
       };
     }
 
@@ -90,16 +90,15 @@ export class SupabaseStorageAdapter implements StorageAdapter {
         if (sameInstant(cached.baseVersion, this.version)) {
           data = cached.data;
           unsynced = true;
-          notes.push('Restored edits from this device that had not reached your account yet.');
+          notes.push('Restored changes from this device that hadn’t synced yet.');
         } else {
           this.local.writeKey(`${cacheKey(user.id)}:conflict`, JSON.stringify(cached));
-          notes.push('Unsynced edits on this device were set aside because your account changed elsewhere in the meantime.');
+          notes.push('Some changes made offline couldn’t be applied because your library was updated on another device.');
         }
       }
       if (!unsynced) this.writeCache(user.id, { data, baseVersion: this.version, dirty: false });
 
       const guest = await this.guestLibrary(user.id);
-      if (guest) notes.push('This browser also holds a guest library that is not in your account yet.');
       return { data, unsynced, guest, notice: notes.join(' ') || undefined };
     }
 
@@ -108,7 +107,7 @@ export class SupabaseStorageAdapter implements StorageAdapter {
     await this.saveForUser(user.id, local.data);
     this.local.writeKey(guestKey(user.id), signature(local.data));
     this.writeCache(user.id, { data: local.data, baseVersion: this.version, dirty: false });
-    return { data: local.data, notice: 'Your browser library was copied to your new cloud account.' };
+    return { data: local.data };
   }
 
   /** The signed-out library on this browser, when it has content that was never merged into this account. */

@@ -8,10 +8,12 @@ const outdir = 'dist';
 
 // Optional build-time configuration (never put secrets here; these are public endpoints).
 //   TMDB_PROXY_URL  - URL of your own proxy that forwards to TMDB and holds the API key server-side.
+//                     On Vercel it defaults to the bundled /api/tmdb function when TMDB_API_KEY is set there.
 //   SUPABASE_URL / SUPABASE_ANON_KEY - public client settings; database access is protected by RLS.
+const tmdbProxy = process.env.TMDB_PROXY_URL ?? (process.env.VERCEL && process.env.TMDB_API_KEY ? '/api/tmdb' : '');
 const define = {
   'process.env.NODE_ENV': JSON.stringify(watch ? 'development' : 'production'),
-  __TMDB_PROXY_URL__: JSON.stringify(process.env.TMDB_PROXY_URL ?? ''),
+  __TMDB_PROXY_URL__: JSON.stringify(tmdbProxy),
   __SUPABASE_URL__: JSON.stringify(process.env.SUPABASE_URL ?? ''),
   __SUPABASE_ANON_KEY__: JSON.stringify(process.env.SUPABASE_ANON_KEY ?? ''),
 };

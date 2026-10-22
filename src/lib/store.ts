@@ -15,8 +15,6 @@ export interface Meta {
   ready: boolean;
   notice?: string;
   saveError?: string;
-  /** A guest library on this browser that can be merged into the signed-in account. */
-  guest?: { books: number; media: number; journal: number };
   adapterName: string;
 }
 export type Result<T = void> = { ok: true; value: T } | { ok: false; error: string };
@@ -49,7 +47,6 @@ export class Store {
   private saving: Promise<void> = Promise.resolve();
   /** Set after a save conflict: further saves are refused until the library is reloaded. */
   private blocked = false;
-  private guestData: AppData | null = null;
   /** Serialized form of the library as last loaded or saved; identical edits are not re-uploaded. */
   private lastSaved = '';
   private retries = 0;
@@ -79,37 +76,29 @@ export class Store {
     this.dirty = false;
     this.blocked = false;
     this.retries = 0;
-    this.guestData = null;
     this.data = emptyData();
-    this.meta = { ...this.meta, ready: false, notice: undefined, saveError: undefined, guest: undefined };
+    this.meta = { ...this.meta, ready: false, notice: undefined, saveError: undefined };
     this.emit();
     try {
       const { data, notice, guest, unsynced } = await this.adapter.load();
       this.data = data ?? emptyData();
       this.lastSaved = unsynced ? '' : JSON.stringify(this.data);
-      this.guestData = guest ?? null;
-      this.meta = { ...this.meta, ready: true, notice, guest: guest && { books: guest.books.length, media: guest.media.length, journal: guest.journal.length } };
+      this.meta = { ...this.meta, ready: true, notice };
       this.dirty = Boolean(unsynced && data);
       if (this.dirty) this.saveTimer = setTimeout(() => void this.flush(), this.saveDelayMs);
+      if (guest) this.absorbGuestLibrary(guest);
     } catch (e) {
       this.meta = { ...this.meta, ready: true, notice: `Could not load saved data: ${(e as Error).message}` };
     }
     this.emit();
   }
 
-  /** Merges the guest library into the signed-in account (duplicates are skipped). */
-  mergeGuestLibrary(): ImportReport | null {
-    const guest = this.guestData;
-    if (!guest) return null;
-    const report = this.importMerge(guest, 'skip');
-    this.dismissGuestLibrary();
-    return report;
-  }
-  /** Keeps the guest library separate; it will not be offered again unless it changes. */
-  dismissGuestLibrary() {
+  /** Quietly adds anything from this browser's signed-out library that the account doesn't have yet. */
+  private absorbGuestLibrary(guest: AppData) {
+    const r = this.importMerge(guest, 'skip');
     this.adapter.resolveGuest?.();
-    this.guestData = null;
-    this.meta = { ...this.meta, guest: undefined };
+    const added = r.addedBooks + r.addedMedia;
+    if (added) this.meta = { ...this.meta, notice: `Added ${added} item${added === 1 ? '' : 's'} from this browser to your library.` };
     this.emit();
   }
 
