@@ -5,7 +5,7 @@ import { Icon, type IconName } from './components/Icon';
 import { ShelvesManager } from './components/ShelvesManager';
 import { useMotion } from './components/common';
 import { getStore, useData, useMeta } from './lib/store';
-import { navigate, openAdd, openSearch, useRoute } from './lib/ui';
+import { navigate, openAdd, openSearch, toast, useRoute } from './lib/ui';
 import { Library } from './views/Library';
 import { Home } from './views/Home';
 import { Journal } from './views/Journal';
@@ -70,6 +70,16 @@ export function App() {
     <div className="app">
       <a href="#main" className="visually-hidden" onClick={(e) => { e.preventDefault(); document.getElementById('main')?.focus(); }}>Skip to content</a>
       {meta.notice && <div className="banner" role="status"><span className="grow">{meta.notice}</span><button className="btn btn-sm" onClick={() => store.dismissNotice()}>Dismiss</button></div>}
+      {meta.guest && (
+        <div className="banner" role="status">
+          <span className="grow">This browser has a guest library ({meta.guest.books} book{meta.guest.books === 1 ? '' : 's'}, {meta.guest.media} screen title{meta.guest.media === 1 ? '' : 's'}, {meta.guest.journal} journal entr{meta.guest.journal === 1 ? 'y' : 'ies'}) that isn’t in your account. Merge it in? Duplicates are skipped.</span>
+          <button className="btn btn-sm btn-primary" onClick={() => {
+            const r = store.mergeGuestLibrary();
+            if (r) toast(`Merged ${r.addedBooks} book${r.addedBooks === 1 ? '' : 's'} and ${r.addedMedia} screen title${r.addedMedia === 1 ? '' : 's'} into your account.`);
+          }}>Merge into account</button>
+          <button className="btn btn-sm" onClick={() => store.dismissGuestLibrary()}>Keep separate</button>
+        </div>
+      )}
       {meta.saveError && <div className="banner is-error" role="alert"><Icon name="alert" /><span className="grow">{meta.saveError}</span><button className="btn btn-sm" onClick={() => void store.flush()}>Try again</button></div>}
       <header className="topbar">
         <Link to="/" className="wordmark" aria-label="The Living Library, home">
