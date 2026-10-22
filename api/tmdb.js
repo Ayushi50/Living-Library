@@ -1,5 +1,6 @@
 // Vercel serverless proxy for TMDB. Keeps the API key on the server (TMDB_API_KEY) so readers
-// never need their own. Only the read-only endpoints the app uses are forwarded.
+// never need their own. vercel.json rewrites /api/tmdb/<path> to /api/tmdb?path=/<path>, and only
+// the read-only endpoints the app uses are forwarded.
 const ALLOWED = [/^\/search\/(movie|tv)$/, /^\/(movie|tv)\/\d+$/];
 
 export default async function handler(req, res) {
@@ -8,10 +9,11 @@ export default async function handler(req, res) {
   if (!key) return res.status(503).json({ error: 'TMDB is not configured on this deployment.' });
 
   const url = new URL(req.url, 'http://localhost');
-  const path = url.pathname.replace(/^\/api\/tmdb/, '');
+  const path = url.searchParams.get('path') ?? '';
   if (!ALLOWED.some((re) => re.test(path))) return res.status(404).json({ error: 'Not found' });
 
   const params = new URLSearchParams(url.search);
+  params.delete('path');
   params.delete('api_key');
   const isToken = key.length > 40; // v4 read-access tokens are long JWTs
   if (!isToken) params.set('api_key', key);
