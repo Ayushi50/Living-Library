@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
 import { Link } from './components/Link';
 import { ConfirmHost, ToastHost } from './components/Hosts';
 import { Icon, type IconName } from './components/Icon';
@@ -25,29 +25,38 @@ const NAV: { to: string; name: string; label: string; icon: IconName }[] = [
   { to: '/stats', name: 'stats', label: 'Stats', icon: 'chart' },
 ];
 
+const systemDarkQuery = () => matchMedia('(prefers-color-scheme: dark)');
+function useSystemDark() {
+  return useSyncExternalStore(
+    (notify) => {
+      const mq = systemDarkQuery();
+      mq.addEventListener('change', notify);
+      return () => mq.removeEventListener('change', notify);
+    },
+    () => systemDarkQuery().matches,
+    () => false,
+  );
+}
+
+/** Applies the theme to the page and returns whether it is dark, derived from state (not from the DOM). */
 function useThemeEffects() {
   const prefs = useData().prefs;
   const motion = useMotion();
+  const systemDark = useSystemDark();
+  const dark = prefs.theme === 'dark' || (prefs.theme === 'system' && systemDark);
   useEffect(() => {
-    const root = document.documentElement;
-    const apply = () => {
-      const dark = prefs.theme === 'dark' || (prefs.theme === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
-      root.dataset.theme = dark ? 'dark' : 'light';
-      document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#17100e' : '#f4ecdc');
-    };
-    apply();
-    const mq = matchMedia('(prefers-color-scheme: dark)');
-    mq.addEventListener('change', apply);
-    return () => mq.removeEventListener('change', apply);
-  }, [prefs.theme]);
+    document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#17100e' : '#f4ecdc');
+  }, [dark]);
   useEffect(() => {
     document.documentElement.dataset.motion = motion ? 'full' : 'reduce';
   }, [motion]);
+  return dark;
 }
 
 export function App() {
   const meta = useMeta();
-  useThemeEffects();
+  const dark = useThemeEffects();
   const data = useData();
   const route = useRoute();
   const store = getStore();
@@ -65,7 +74,6 @@ export function App() {
 
   if (!meta.ready) return <div className="boot" role="status" aria-live="polite">Opening the library…</div>;
 
-  const dark = document.documentElement.dataset.theme === 'dark';
   return (
     <div className="app">
       <a href="#main" className="visually-hidden" onClick={(e) => { e.preventDefault(); document.getElementById('main')?.focus(); }}>Skip to content</a>
