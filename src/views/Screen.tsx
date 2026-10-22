@@ -43,7 +43,7 @@ export function Screen({ mediaId }: { mediaId?: string }) {
   return (
     <div className="page screen-page">
       <header className="page-head">
-        <div><p className="kicker">The Screening Room</p><h1 className="page-title">Your archive</h1></div>
+        <div><p className="kicker">The Screening Room</p><h1 className="page-title">Your watchlist</h1></div>
         <div className="page-actions"><button className="btn btn-primary" onClick={() => openAdd('movie')} data-testid="add-media"><Icon name="plus" size={16} /> Add a title</button></div>
       </header>
 
@@ -71,7 +71,7 @@ export function Screen({ mediaId }: { mediaId?: string }) {
             </section>
           )}
           <div className="toolbar" role="search">
-            <div className="toolbar-search"><Icon name="search" size={16} /><input aria-label="Filter your archive" placeholder="Filter by title, genre, cast, tag…" value={q} onChange={(e) => setQ(e.target.value)} /></div>
+            <div className="toolbar-search"><Icon name="search" size={16} /><input aria-label="Filter your watchlist" placeholder="Filter by title, genre, cast, tag…" value={q} onChange={(e) => setQ(e.target.value)} /></div>
             <div className="toolbar-chips" role="group" aria-label="Filter by type">
               {(['all', 'movie', 'tv', 'kdrama', 'anime'] as const).map((k) => <button key={k} className={`chip chip-toggle ${kind === k ? 'is-on' : ''}`} aria-pressed={kind === k} onClick={() => setKind(k)}>{k === 'all' ? 'Everything' : MEDIA_KIND_LABEL[k]}</button>)}
             </div>
