@@ -1,4 +1,5 @@
 // Bundles the app with esbuild into ./dist. `--watch` serves it on http://localhost:5173
+import 'dotenv/config';
 import * as esbuild from 'esbuild';
 import { cpSync, mkdirSync, rmSync, readFileSync, writeFileSync } from 'node:fs';
 
@@ -7,10 +8,12 @@ const outdir = 'dist';
 
 // Optional build-time configuration (never put secrets here; these are public endpoints).
 //   TMDB_PROXY_URL  - URL of your own proxy that forwards to TMDB and holds the API key server-side.
-//   SUPABASE_URL / SUPABASE_ANON_KEY - reserved for a future cloud storage adapter (not wired up yet).
+//   SUPABASE_URL / SUPABASE_ANON_KEY - public client settings; database access is protected by RLS.
 const define = {
   'process.env.NODE_ENV': JSON.stringify(watch ? 'development' : 'production'),
   __TMDB_PROXY_URL__: JSON.stringify(process.env.TMDB_PROXY_URL ?? ''),
+  __SUPABASE_URL__: JSON.stringify(process.env.SUPABASE_URL ?? ''),
+  __SUPABASE_ANON_KEY__: JSON.stringify(process.env.SUPABASE_ANON_KEY ?? ''),
 };
 
 rmSync(outdir, { recursive: true, force: true });

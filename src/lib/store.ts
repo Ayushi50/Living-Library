@@ -61,6 +61,16 @@ export class Store {
   }
 
   async init() {
+    await this.reload();
+  }
+
+  async reload() {
+    if (this.saveTimer) clearTimeout(this.saveTimer);
+    this.saveTimer = undefined;
+    this.dirty = false;
+    this.data = emptyData();
+    this.meta = { ...this.meta, ready: false, notice: undefined, saveError: undefined };
+    this.emit();
     try {
       const { data, notice } = await this.adapter.load();
       this.data = data ?? emptyData();

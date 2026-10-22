@@ -15,6 +15,7 @@ import { Settings } from './views/Settings';
 import { AddFlow } from './components/AddFlow';
 import { GoalsEditor } from './components/GoalsEditor';
 import { SearchPalette } from './components/SearchPalette';
+import { AccountMenu } from './components/AccountMenu';
 
 const NAV: { to: string; name: string; label: string; icon: IconName }[] = [
   { to: '/', name: 'home', label: 'Home', icon: 'home' },
@@ -82,7 +83,7 @@ export function App() {
           <button className="search-trigger" onClick={openSearch} aria-label="Search your library"><Icon name="search" size={16} /><span>Search your library…</span><kbd>⌘K</kbd></button>
           <button className="btn btn-primary btn-sm" onClick={() => openAdd(route.name === 'screen' ? 'movie' : 'book')} data-testid="quick-add"><Icon name="plus" size={15} /> <span className="add-label">Add</span></button>
           <button className="icon-btn" aria-label={dark ? 'Switch to light theme' : 'Switch to dark theme'} onClick={() => store.setPrefs({ theme: dark ? 'light' : 'dark' })} data-testid="theme-toggle"><Icon name={dark ? 'sun' : 'moon'} /></button>
-          <Link to="/settings" className="icon-btn" aria-label="Settings" aria-current={route.name === 'settings' ? 'page' : undefined}><Icon name="gear" /></Link>
+          <AccountMenu />
         </div>
       </header>
       <main id="main" tabIndex={-1} className="main" data-mood={route.name === 'screen' ? 'cinema' : undefined}>

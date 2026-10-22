@@ -1,6 +1,5 @@
-// Persistence boundary. The app talks to a `StorageAdapter`; today the only implementation is
-// browser localStorage ("local development mode"). A cloud adapter (e.g. Supabase) can implement the
-// same interface later — it is intentionally NOT included or claimed to work here.
+// Persistence boundary. LocalStorageAdapter is used for guest libraries and migration; when
+// configured, the Supabase adapter stores each signed-in user's library in the cloud.
 import type { AppData } from '../types';
 import { emptyData, normalizeData } from './normalize';
 
