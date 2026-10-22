@@ -107,8 +107,8 @@ export function Settings() {
           <h2>Sample content</h2>
           <p className="muted">Demo books and titles are labelled as samples and can be removed together without touching anything you added.</p>
           <div className="page-actions">
-            <button className="btn" disabled={data.demoLoaded} onClick={() => { store.loadDemo(buildDemo(store.data.shelves)); toast('Sample content loaded'); }}>Load sample content</button>
-            <button className="btn btn-danger" disabled={!data.demoLoaded} onClick={async () => { if (await confirmAction({ title: 'Remove all sample content?', body: `${demoCount} sample item(s) and their sessions and notes will be removed. Your own entries stay.`, confirmLabel: 'Remove sample content' })) { store.removeDemo(); toast('Sample content removed'); } }} data-testid="remove-demo">Remove sample content</button>
+            {!data.demoLoaded && <button className="btn" onClick={() => { store.loadDemo(buildDemo(store.data.shelves)); toast('Sample content loaded'); }}>Load sample content</button>}
+            {data.demoLoaded && <button className="btn btn-danger" onClick={async () => { if (await confirmAction({ title: 'Remove all sample content?', body: `${demoCount} sample item(s) and their sessions and notes will be removed. Your own entries stay.`, confirmLabel: 'Remove sample content' })) { store.removeDemo(); toast('Sample content removed'); } }} data-testid="remove-demo">Remove sample content</button>}
           </div>
         </section>
         <section className="settings-subsection danger-zone">
