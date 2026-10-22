@@ -229,10 +229,11 @@ export function FallbackCover({ title, author, color, className = '' }: { title:
 export function Poster({ media, className = '' }: { media: Pick<Media, 'title' | 'posterUrl' | 'year' | 'kind'>; className?: string }) {
   const [failed, setFailed] = useState(false);
   useEffect(() => setFailed(false), [media.posterUrl]);
+  // Hooks must run on every render, so this sits above the early return below.
+  const hue = useMemo(() => [...media.title].reduce((n, c) => (n * 31 + c.charCodeAt(0)) % 360, 7), [media.title]);
   if (media.posterUrl && !failed) {
     return <img className={`poster-img ${className}`} src={media.posterUrl} alt={`Poster of ${media.title}`} loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setFailed(true)} />;
   }
-  const hue = useMemo(() => [...media.title].reduce((n, c) => (n * 31 + c.charCodeAt(0)) % 360, 7), [media.title]);
   const style = { '--ph': hue } as CSSProperties;
   return (
     <div className={`poster-fallback ${className}`} style={style} role="img" aria-label={`Poster of ${media.title}`}>
