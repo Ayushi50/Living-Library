@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { Icon } from './Icon';
 import { getStore } from '../lib/store';
-import { supabaseStorage } from '../lib/supabaseStorage';
+import { AccountExistsError, supabaseStorage } from '../lib/supabaseStorage';
 import { Link } from './Link';
 import { toast } from '../lib/ui';
 
-type Mode = 'signin' | 'signup' | 'link';
+type Mode = 'signin' | 'signup' | 'link' | 'forgot' | 'reset';
 
 const friendlyError = (error: unknown, fallback: string) => {
+  if (error instanceof AccountExistsError) return 'An account with this email already exists. Sign in instead, or use “Forgot password?”.';
   const message = error instanceof Error ? error.message : '';
   if (/invalid login credentials/i.test(message)) return 'That email and password don’t match. Check them, or create an account.';
   if (/provider is not enabled|unsupported provider/i.test(message)) return 'Google sign-in isn’t switched on yet. Use email for now.';
@@ -18,6 +19,8 @@ const friendlyError = (error: unknown, fallback: string) => {
 export function AccountMenu() {
   const store = getStore();
   const menuRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLElement>(null);
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
   const [mode, setMode] = useState<Mode>('signin');
@@ -26,6 +29,7 @@ export function AccountMenu() {
   const [showPassword, setShowPassword] = useState(false);
   const [linkSent, setLinkSent] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
   const [feedback, setFeedback] = useState<{ text: string; error?: boolean } | null>(null);
 
   useEffect(() => {
@@ -38,15 +42,26 @@ export function AccountMenu() {
       toast(linkError.replace(/\+/g, ' ') + ' Please try signing in again.', 'error');
       history.replaceState(null, '', window.location.pathname + window.location.search + '#/');
     }
+    // The recovery link may have been handled before this component mounted.
+    if (supabaseStorage.recovering) {
+      setMode('reset');
+      setOpen(true);
+    }
     const unsubscribe = supabaseStorage.onAuthStateChange((event, currentEmail, userChanged) => {
       setEmail(currentEmail);
+      if (event === 'PASSWORD_RECOVERY') {
+        setMode('reset');
+        setFeedback(null);
+        setOpen(true);
+        return;
+      }
       // Only announce real changes; Supabase also emits SIGNED_IN on every tab refocus.
       if (!userChanged) return;
       if (event === 'SIGNED_IN') {
         setLinkSent(false);
         setPassword('');
         setFeedback(null);
-        setOpen(false);
+        if (!supabaseStorage?.recovering) setOpen(false);
         toast('You’re signed in. Your library is syncing to your account.');
       }
       if (event === 'SIGNED_OUT') {
@@ -65,13 +80,26 @@ export function AccountMenu() {
     };
   }, []);
 
+  // Closing returns focus to the trigger so keyboard users don't lose their place.
+  const close = (restoreFocus = true) => {
+    setOpen(false);
+    if (restoreFocus) triggerRef.current?.focus();
+  };
+
+  // Opening moves focus into the panel (first field, else first control).
+  useEffect(() => {
+    if (!open) return;
+    const panel = panelRef.current;
+    panel?.querySelector<HTMLElement>('input:not([disabled]), button:not([disabled]), a[href]')?.focus();
+  }, [open, mode, email]);
+
   useEffect(() => {
     if (!open) return;
     const onPointerDown = (event: PointerEvent) => {
       if (!menuRef.current?.contains(event.target as Node)) setOpen(false);
     };
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false);
+      if (event.key === 'Escape') close();
     };
     document.addEventListener('pointerdown', onPointerDown);
     document.addEventListener('keydown', onKeyDown);
@@ -98,6 +126,12 @@ export function AccountMenu() {
     event.preventDefault();
     if (!supabaseStorage) return;
     const target = emailInput.trim();
+    if (mode === 'forgot') {
+      return run(async () => {
+        await supabaseStorage!.sendPasswordReset(target);
+        setFeedback({ text: `If an account exists for ${target}, we emailed a link to reset the password. Open it on this device.` });
+      }, 'Could not send the reset email.');
+    }
     if (mode === 'link') {
       return run(async () => {
         await supabaseStorage!.sendSignInLink(target);
@@ -118,6 +152,21 @@ export function AccountMenu() {
     return run(() => supabaseStorage!.signInWithPassword(target, password), 'Could not sign in.');
   };
 
+  const submitNewPassword = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (newPassword.length < 8) {
+      setFeedback({ text: 'Choose a password with at least 8 characters.', error: true });
+      return;
+    }
+    return run(async () => {
+      await supabaseStorage!.updatePassword(newPassword);
+      setNewPassword('');
+      setMode('signin');
+      toast('Your password has been updated.');
+      close();
+    }, 'Could not update your password.');
+  };
+
   const google = () => run(() => supabaseStorage!.signInWithGoogle(), 'Could not start Google sign-in.');
   const signOut = () => run(() => supabaseStorage!.signOut(), 'Could not sign out.');
   const switchMode = (next: Mode) => {
@@ -126,11 +175,13 @@ export function AccountMenu() {
     setLinkSent(false);
   };
 
-  const heading = email ? 'Your account' : mode === 'signup' ? 'Create account' : 'Sign in';
+  const resetting = mode === 'reset' && Boolean(email);
+  const heading = resetting ? 'Choose a new password' : email ? 'Your account' : mode === 'signup' ? 'Create account' : mode === 'forgot' ? 'Reset password' : 'Sign in';
 
   return (
     <div className="account-menu" ref={menuRef}>
       <button
+        ref={triggerRef}
         className="icon-btn"
         type="button"
         aria-label={email ? `Account: ${email}` : 'Sign in'}
@@ -142,13 +193,22 @@ export function AccountMenu() {
         <Icon name="user" />
       </button>
       {open && (
-        <section className="account-panel" id="account-panel" aria-label="Account">
+        <section className="account-panel" id="account-panel" role="dialog" aria-label="Account" ref={panelRef}>
           <div className="account-panel-head">
             <h2>{heading}</h2>
-            <button className="icon-btn" type="button" aria-label="Close account menu" onClick={() => setOpen(false)}><Icon name="close" size={16} /></button>
+            <button className="icon-btn" type="button" aria-label="Close account menu" onClick={() => close()}><Icon name="close" size={16} /></button>
           </div>
           {!supabaseStorage ? (
             <p className="muted">Cloud sign-in is not configured. Your library is saved in this browser.</p>
+          ) : resetting ? (
+            <form onSubmit={(event) => void submitNewPassword(event)}>
+              <label className="field">
+                <span className="field-label">New password</span>
+                <input className="input" type="password" autoComplete="new-password" minLength={8} required value={newPassword} onChange={(event) => setNewPassword(event.target.value)} />
+                <span className="field-hint">At least 8 characters.</span>
+              </label>
+              <button className="btn btn-primary" type="submit" disabled={busy}>{busy ? 'Please wait…' : 'Update password'}</button>
+            </form>
           ) : email ? (
             <>
               <p className="account-email">{email}</p>
@@ -168,7 +228,7 @@ export function AccountMenu() {
                   <span className="field-label">Email address</span>
                   <input className="input" type="email" inputMode="email" autoComplete="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} required value={emailInput} onChange={(event) => setEmailInput(event.target.value)} />
                 </label>
-                {mode !== 'link' && (
+                {mode !== 'link' && mode !== 'forgot' && (
                   <label className="field">
                     <span className="field-label">Password</span>
                     <span className="password-row">
@@ -179,19 +239,20 @@ export function AccountMenu() {
                   </label>
                 )}
                 <button className="btn btn-primary" type="submit" disabled={busy}>
-                  {busy ? 'Please wait…' : mode === 'signup' ? 'Create account' : mode === 'link' ? (linkSent ? 'Send another link' : 'Email me a link') : 'Sign in'}
+                  {busy ? 'Please wait…' : mode === 'forgot' ? 'Email me a reset link' : mode === 'signup' ? 'Create account' : mode === 'link' ? (linkSent ? 'Send another link' : 'Email me a link') : 'Sign in'}
                 </button>
               </form>
               <p className="account-switch">
                 {mode === 'signin' && <>New here? <button className="link" type="button" onClick={() => switchMode('signup')}>Create an account</button></>}
                 {mode === 'signup' && <>Already have an account? <button className="link" type="button" onClick={() => switchMode('signin')}>Sign in</button></>}
-                {mode === 'link' && <button className="link" type="button" onClick={() => switchMode('signin')}>Use a password instead</button>}
-                {mode !== 'link' && <> · <button className="link" type="button" onClick={() => switchMode('link')}>Email me a link</button></>}
+                {(mode === 'link' || mode === 'forgot') && <button className="link" type="button" onClick={() => switchMode('signin')}>{mode === 'link' ? 'Use a password instead' : 'Back to sign in'}</button>}
+                {(mode === 'signin' || mode === 'signup') && <> · <button className="link" type="button" onClick={() => switchMode('link')}>Email me a link</button></>}
+                {mode === 'signin' && <> · <button className="link" type="button" onClick={() => switchMode('forgot')}>Forgot password?</button></>}
               </p>
             </>
           )}
           {feedback && <p className={`notice${feedback.error ? ' is-error' : ''}`} role={feedback.error ? 'alert' : 'status'}>{feedback.text}</p>}
-          <Link to="/settings" className="account-settings" onClick={() => setOpen(false)}><Icon name="gear" size={15} /> Settings</Link>
+          <Link to="/settings" className="account-settings" onClick={() => close(false)}><Icon name="gear" size={15} /> Settings</Link>
         </section>
       )}
     </div>

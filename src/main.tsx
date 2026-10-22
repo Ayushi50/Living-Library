@@ -11,8 +11,11 @@ setStore(store);
 addEventListener('pagehide', () => void store.flush());
 document.addEventListener('visibilitychange', () => document.visibilityState === 'hidden' && void store.flush());
 
+// Retry a failed or offline save as soon as the connection returns.
+addEventListener('online', () => void store.flush());
+
 supabaseStorage?.onAuthStateChange((_event, _email, userChanged) => {
-	if (userChanged) setTimeout(() => void store.reload(), 0);
+  if (userChanged) setTimeout(() => void store.reload(), 0);
 });
 
 createRoot(document.getElementById('root')!).render(<App />);

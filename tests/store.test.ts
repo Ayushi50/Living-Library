@@ -252,3 +252,63 @@ test('spine geometry varies with page count and stays bounded', () => {
   assert.ok(mk(undefined, 'c').hasEstimatedPages);
   assert.ok(mk(300, 'd', 'Hardcover').height > mk(300, 'd', 'Mass market paperback').height);
 });
+
+test('saves are serialized and a conflict blocks further saves until reload', async () => {
+  const { SaveConflictError } = await import('../src/lib/storage');
+  const order: string[] = [];
+  let failNext = false;
+  const adapter = {
+    name: 'slow',
+    load: async () => ({ data: null }),
+    save: async (d: { prefs: { displayName?: string } }) => {
+      if (failNext) throw new SaveConflictError();
+      await new Promise((r) => setTimeout(r, order.length === 0 ? 30 : 0));
+      order.push(String(d.prefs.displayName));
+    },
+  };
+  const s = new Store(adapter as never, 0);
+  await s.init();
+  s.setPrefs({ displayName: 'first' });
+  const f1 = s.flush();
+  await new Promise((r) => setTimeout(r, 5)); // first save is now in flight
+  s.setPrefs({ displayName: 'second' });
+  await Promise.all([f1, s.flush()]);
+  assert.deepEqual(order, ['first', 'second']);
+
+  failNext = true;
+  s.setPrefs({ displayName: 'third' });
+  await s.flush();
+  assert.match(s.meta.saveError ?? '', /another device/);
+  failNext = false;
+  await s.flush();
+  assert.equal(order.length, 2); // still blocked
+  await s.reload();
+  assert.equal(s.meta.saveError, undefined);
+});
+
+
+test('identical data is not uploaded again and failed saves retry on their own', async () => {
+  let saves = 0;
+  let failures = 1;
+  const adapter = {
+    name: 'flaky',
+    load: async () => ({ data: null }),
+    save: async () => {
+      if (failures-- > 0) throw new Error('offline');
+      saves++;
+    },
+  };
+  const s = new Store(adapter as never, 0);
+  await s.init();
+  s.setPrefs({ displayName: 'A' });
+  await s.flush();
+  assert.match(s.meta.saveError ?? '', /retrying/);
+  await s.flush(); // manual retry, as the banner button does
+  assert.equal(saves, 1);
+  assert.equal(s.meta.saveError, undefined);
+
+  s.setPrefs({ displayName: 'B' });
+  s.setPrefs({ displayName: 'A' }); // back to the saved state
+  await s.flush();
+  assert.equal(saves, 1);
+});

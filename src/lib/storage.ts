@@ -6,15 +6,34 @@ import { emptyData, normalizeData } from './normalize';
 export interface StorageAdapter {
   readonly name: string;
   /** Resolve with saved data, or null when nothing has been saved yet. */
-  load(): Promise<{ data: AppData | null; notice?: string }>;
+  load(): Promise<LoadResult>;
   save(data: AppData): Promise<void>;
+  /** Marks the guest library offered in `LoadResult.guest` as dealt with, so it is not offered again. */
+  resolveGuest?(): void;
+}
+
+export interface LoadResult {
+  data: AppData | null;
+  notice?: string;
+  /** A guest (signed-out) library on this browser that is not yet part of the loaded account. */
+  guest?: AppData;
+  /** `data` holds edits made on this device that never reached the cloud; they should be saved again. */
+  unsynced?: boolean;
+}
+
+/** Thrown when a save would overwrite changes made elsewhere (another device or tab). */
+export class SaveConflictError extends Error {
+  constructor() {
+    super('This library was changed on another device or tab.');
+    this.name = 'SaveConflictError';
+  }
 }
 
 export const STORAGE_KEY = 'living-library:v1';
 
 export class LocalStorageAdapter implements StorageAdapter {
   readonly name = 'This browser (localStorage)';
-  constructor(private readonly storage: Pick<Storage, 'getItem' | 'setItem'> = globalThis.localStorage) {}
+  constructor(private readonly storage: Pick<Storage, 'getItem' | 'setItem'> & Partial<Pick<Storage, 'removeItem'>> = globalThis.localStorage) {}
 
   async load() {
     let raw: string | null = null;
@@ -40,6 +59,23 @@ export class LocalStorageAdapter implements StorageAdapter {
 
   async save(data: AppData) {
     this.storage.setItem(STORAGE_KEY, JSON.stringify(data));
+  }
+
+  /** Small side-channel for bookkeeping that must live next to the library (never throws). */
+  readKey(key: string): string | null {
+    try {
+      return this.storage.getItem(key);
+    } catch {
+      return null;
+    }
+  }
+  writeKey(key: string, value: string | null) {
+    try {
+      if (value === null) this.storage.removeItem?.(key);
+      else this.storage.setItem(key, value);
+    } catch {
+      /* ignore */
+    }
   }
 }
 

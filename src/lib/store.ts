@@ -9,12 +9,14 @@ import { today, toDay } from './dates';
 import { nowIso, uid } from './ids';
 import { canCompleteSeries, findDuplicateMedia, isCaughtUp, isSeries, nextEpisode, totalEpisodes } from './media';
 import { emptyData, normalizeBook, normalizeData, normalizeMedia, reconcileBookRuns } from './normalize';
-import type { StorageAdapter } from './storage';
+import { SaveConflictError, type StorageAdapter } from './storage';
 
 export interface Meta {
   ready: boolean;
   notice?: string;
   saveError?: string;
+  /** A guest library on this browser that can be merged into the signed-in account. */
+  guest?: { books: number; media: number; journal: number };
   adapterName: string;
 }
 export type Result<T = void> = { ok: true; value: T } | { ok: false; error: string };
@@ -44,6 +46,13 @@ export class Store {
   private listeners = new Set<() => void>();
   private saveTimer: ReturnType<typeof setTimeout> | undefined;
   private dirty = false;
+  private saving: Promise<void> = Promise.resolve();
+  /** Set after a save conflict: further saves are refused until the library is reloaded. */
+  private blocked = false;
+  private guestData: AppData | null = null;
+  /** Serialized form of the library as last loaded or saved; identical edits are not re-uploaded. */
+  private lastSaved = '';
+  private retries = 0;
 
   constructor(private readonly adapter: StorageAdapter, private readonly saveDelayMs = 120) {
     this.meta = { ready: false, adapterName: adapter.name };
@@ -68,17 +77,39 @@ export class Store {
     if (this.saveTimer) clearTimeout(this.saveTimer);
     this.saveTimer = undefined;
     this.dirty = false;
+    this.blocked = false;
+    this.retries = 0;
+    this.guestData = null;
     this.data = emptyData();
-    this.meta = { ...this.meta, ready: false, notice: undefined, saveError: undefined };
+    this.meta = { ...this.meta, ready: false, notice: undefined, saveError: undefined, guest: undefined };
     this.emit();
     try {
-      const { data, notice } = await this.adapter.load();
+      const { data, notice, guest, unsynced } = await this.adapter.load();
       this.data = data ?? emptyData();
-      this.meta = { ...this.meta, ready: true, notice };
-      if (!data) this.dirty = false;
+      this.lastSaved = unsynced ? '' : JSON.stringify(this.data);
+      this.guestData = guest ?? null;
+      this.meta = { ...this.meta, ready: true, notice, guest: guest && { books: guest.books.length, media: guest.media.length, journal: guest.journal.length } };
+      this.dirty = Boolean(unsynced && data);
+      if (this.dirty) this.saveTimer = setTimeout(() => void this.flush(), this.saveDelayMs);
     } catch (e) {
       this.meta = { ...this.meta, ready: true, notice: `Could not load saved data: ${(e as Error).message}` };
     }
+    this.emit();
+  }
+
+  /** Merges the guest library into the signed-in account (duplicates are skipped). */
+  mergeGuestLibrary(): ImportReport | null {
+    const guest = this.guestData;
+    if (!guest) return null;
+    const report = this.importMerge(guest, 'skip');
+    this.dismissGuestLibrary();
+    return report;
+  }
+  /** Keeps the guest library separate; it will not be offered again unless it changes. */
+  dismissGuestLibrary() {
+    this.adapter.resolveGuest?.();
+    this.guestData = null;
+    this.meta = { ...this.meta, guest: undefined };
     this.emit();
   }
 
@@ -95,21 +126,41 @@ export class Store {
     if (this.saveTimer) clearTimeout(this.saveTimer);
     this.saveTimer = setTimeout(() => void this.flush(), this.saveDelayMs);
   }
-  async flush() {
+  /** Saves run one at a time, in order, so an older write can never land after a newer one. */
+  flush(): Promise<void> {
     if (this.saveTimer) clearTimeout(this.saveTimer);
     this.saveTimer = undefined;
-    if (!this.dirty) return;
+    this.saving = this.saving.then(() => this.writeNow());
+    return this.saving;
+  }
+  private async writeNow() {
+    if (!this.dirty || this.blocked) return;
+    const snapshot = JSON.stringify(this.data);
+    if (snapshot === this.lastSaved) {
+      this.dirty = false;
+      return;
+    }
     this.dirty = false;
     try {
       await this.adapter.save(this.data);
+      this.lastSaved = snapshot;
+      this.retries = 0;
       if (this.meta.saveError) {
         this.meta = { ...this.meta, saveError: undefined };
         this.emit();
       }
     } catch (e) {
       this.dirty = true;
-      this.meta = { ...this.meta, saveError: `Your latest changes could not be saved (${(e as Error).message}). Export a backup from Settings.` };
+      if (e instanceof SaveConflictError) {
+        this.blocked = true;
+        this.meta = { ...this.meta, saveError: 'This library was changed on another device, so your latest edits were not saved. Export a backup from Settings, then reload the page to get the newest version.' };
+        this.emit();
+        return;
+      }
+      this.meta = { ...this.meta, saveError: `Your latest changes could not be saved (${(e as Error).message}). We'll keep retrying; you can also export a backup from Settings.` };
       this.emit();
+      // Retry with exponential backoff (2s, 4s … capped at 60s) until the save goes through.
+      if (!this.saveTimer) this.saveTimer = setTimeout(() => void this.flush(), Math.min(60_000, 2000 * 2 ** this.retries++));
     }
   }
 
