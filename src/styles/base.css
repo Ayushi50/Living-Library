@@ -187,3 +187,22 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 }
 /* iOS Safari zooms the page when a focused field is under 16px */
 @media (max-width: 900px) { input, select, textarea { font-size: max(16px, 1em); } }
+
+/* ---------------------------------------------------------------- loading screen */
+.boot { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--sp-3); padding: var(--sp-6); background: var(--paper); color: var(--ink); text-align: center; animation: boot-in 0.5s var(--ease) both; }
+.boot-shelf { display: flex; align-items: flex-end; gap: 6px; height: 84px; padding: 0 14px 6px; border-bottom: 5px solid var(--burgundy); margin-bottom: var(--sp-3); }
+.boot-shelf i { display: block; width: 16px; border-radius: 2px 2px 1px 1px; background: var(--burgundy); transform-origin: bottom center; animation: boot-book 1.6s var(--ease) infinite; }
+.boot-shelf i:nth-child(1) { height: 56px; animation-delay: 0s; }
+.boot-shelf i:nth-child(2) { height: 70px; background: var(--gold-bright); animation-delay: 0.15s; }
+.boot-shelf i:nth-child(3) { height: 48px; background: var(--ink-soft); animation-delay: 0.3s; }
+.boot-shelf i:nth-child(4) { height: 64px; animation-delay: 0.45s; }
+.boot-shelf i:nth-child(5) { height: 76px; background: var(--gold-bright); animation-delay: 0.6s; }
+.boot-title { margin: 0; font-size: 1.6rem; font-style: italic; letter-spacing: 0.01em; }
+.boot-sub { margin: 0; font-size: var(--fs-sm); color: var(--ink-faint); }
+.boot-dots u { text-decoration: none; display: inline-block; animation: boot-dot 1.2s infinite; }
+.boot-dots u:nth-child(2) { animation-delay: 0.2s; }
+.boot-dots u:nth-child(3) { animation-delay: 0.4s; }
+@keyframes boot-in { from { opacity: 0; } }
+@keyframes boot-book { 0%, 55%, 100% { transform: translateY(0) rotate(0); } 20% { transform: translateY(-14px) rotate(-5deg); } 35% { transform: translateY(0) rotate(0); } }
+@keyframes boot-dot { 0%, 60%, 100% { opacity: 0.2; } 30% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .boot, .boot-shelf i, .boot-dots u { animation: none; } .boot-dots u { opacity: 1; } }

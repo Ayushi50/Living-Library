@@ -72,7 +72,17 @@ export function App() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  if (!meta.ready) return <div className="boot" role="status" aria-live="polite">Opening the library…</div>;
+  if (!meta.ready) {
+    return (
+      <div className="boot" role="status" aria-live="polite">
+        <div className="boot-shelf" aria-hidden="true">
+          <i /><i /><i /><i /><i />
+        </div>
+        <p className="boot-title">The Livin' <b>Library</b></p>
+        <p className="boot-sub">Opening the library<span className="boot-dots" aria-hidden="true"><u>.</u><u>.</u><u>.</u></span></p>
+      </div>
+    );
+  }
 
   return (
     <div className="app">
