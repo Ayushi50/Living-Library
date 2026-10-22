@@ -269,7 +269,7 @@ export function normalizePrefs(raw: unknown): Preferences {
   };
 }
 
-export const DEFAULT_SHELF_NAMES = ['Favorites', 'Classics', 'Comfort Reads', 'Books to Reread', 'Book Club', 'To Buy'];
+export const DEFAULT_SHELF_NAMES = ['Favorites'];
 
 export function emptyData(): AppData {
   return {
