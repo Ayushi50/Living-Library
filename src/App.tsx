@@ -112,6 +112,9 @@ export function App() {
         {route.name === 'stats' && <Stats />}
         {route.name === 'settings' && <Settings />}
       </main>
+      <footer className="footer">
+        <span>Made with ♥ by Ayushi · 2026</span>
+      </footer>
       <nav className="tabbar" aria-label="Primary mobile">
         {NAV.map((n) => <Link key={n.to} to={n.to} aria-current={route.name === n.name ? 'page' : undefined}><Icon name={n.icon} size={20} />{n.label}</Link>)}
       </nav>
