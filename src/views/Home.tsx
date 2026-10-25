@@ -92,9 +92,9 @@ export function Home() {
                 </ul>
               )}
             </div>
-            <div className="home-col cinema" aria-label="Currently watching">
+            {watching.length > 0 && <div className="home-col cinema" aria-label="Currently watching">
               <h2 className="section-title">Currently watching</h2>
-              {watching.length === 0 ? <p className="muted">Nothing on right now. <button className="link" onClick={() => navigate('/screen')}>Browse the archive.</button></p> : (
+              {(
                 <ul className="continue-list">
                   {watching.slice(0, 4).map((m) => {
                     const n = isSeries(m) ? nextEpisode(m) : undefined;
@@ -110,7 +110,7 @@ export function Home() {
                   })}
                 </ul>
               )}
-            </div>
+            </div>}
           </section>
 
           <section className="year-strip" aria-label={`${year} so far`}>

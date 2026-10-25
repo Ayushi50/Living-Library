@@ -64,6 +64,7 @@ hr { border: 0; border-top: 1px solid var(--line); margin: var(--sp-5) 0; }
 .first-run { max-width: 640px; padding: var(--sp-6); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); }
 .first-run h2 { font-size: var(--fs-xl); font-style: italic; margin-bottom: var(--sp-2); }
 .home-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-6); margin-bottom: var(--sp-6); }
+.home-cols:has(> .home-col:only-child) { grid-template-columns: minmax(0, 1fr); }
 .home-col.cinema { padding: var(--sp-4); border-radius: var(--radius-lg); background: linear-gradient(160deg, #1d1620, #120d14); color: #efe3d3; border: 1px solid rgba(255,255,255,.08); }
 .home-col.cinema .muted, .home-col.cinema small { color: #b8a8b3; }
 .home-col.cinema .link { color: #e6c877; }
