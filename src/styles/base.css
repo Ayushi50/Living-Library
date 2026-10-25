@@ -104,6 +104,8 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .account-panel .btn-primary { margin-top: 4px; }
 .account-panel .btn { width: 100%; justify-content: center; }
 .account-panel .notice { margin: 12px 0 0; }
+.account-initial { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--burgundy); color: #fff; font-weight: 700; font-size: 0.95rem; line-height: 1; }
+.account-name { font-family: var(--font-display, inherit); font-size: 1.15rem; margin: 0 0 2px; }
 .account-email { overflow-wrap: anywhere; font-weight: 600; }
 .account-settings { display: flex; align-items: center; gap: 8px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); text-decoration: none; color: var(--ink-soft); font-size: var(--fs-sm); }
 .account-settings:hover { color: var(--ink); }

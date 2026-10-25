@@ -16,6 +16,12 @@ const friendlyError = (error: unknown, fallback: string) => {
   return message || fallback;
 };
 
+// "ayushi.pandey316@gmail.com" -> "Ayushi"
+const nameFromEmail = (email: string) => {
+  const first = email.split('@')[0].split(/[._\-+\d]+/).find(Boolean) ?? '';
+  return first.charAt(0).toUpperCase() + first.slice(1).toLowerCase();
+};
+
 export function AccountMenu() {
   const store = getStore();
   const menuRef = useRef<HTMLDivElement>(null);
@@ -175,6 +181,7 @@ export function AccountMenu() {
     setLinkSent(false);
   };
 
+  const name = email ? nameFromEmail(email) : '';
   const resetting = mode === 'reset' && Boolean(email);
   const heading = resetting ? 'Choose a new password' : email ? 'Your account' : mode === 'signup' ? 'Create account' : mode === 'forgot' ? 'Reset password' : 'Sign in';
 
@@ -184,13 +191,13 @@ export function AccountMenu() {
         ref={triggerRef}
         className="icon-btn"
         type="button"
-        aria-label={email ? `Account: ${email}` : 'Sign in'}
+        aria-label={email ? `Account: ${name || email} (${email})` : 'Sign in'}
         aria-expanded={open}
         aria-controls="account-panel"
         onClick={() => setOpen((wasOpen) => !wasOpen)}
         data-testid="account-menu-trigger"
       >
-        <Icon name="user" />
+        {email && name ? <span className="account-initial" aria-hidden="true">{name.charAt(0)}</span> : <Icon name="user" />}
       </button>
       {open && (
         <section className="account-panel" id="account-panel" role="dialog" aria-label="Account" ref={panelRef}>
@@ -211,6 +218,7 @@ export function AccountMenu() {
             </form>
           ) : email ? (
             <>
+              {name && <p className="account-name">Hi, {name}</p>}
               <p className="account-email">{email}</p>
               <p className="muted">Your library is saved to your account.</p>
               <button className="btn" type="button" onClick={() => void signOut()} disabled={busy}>{busy ? 'Signing out…' : 'Sign out'}</button>
