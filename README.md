@@ -4,6 +4,14 @@ A private reading and watching tracker with an interactive hardcover bookshelf.
 
 **Live app: https://livin-library.vercel.app/**
 
+## Screenshots
+
+| Home | Library |
+| --- | --- |
+| ![Home](docs/screenshots/home.png) | ![Library](docs/screenshots/library.png) |
+| **Journal** | **Stats** |
+| ![Journal](docs/screenshots/journal.png) | ![Stats](docs/screenshots/stats.png) |
+
 ## Features
 
 - **Bookshelf** – browse your books as hardcover spines on customizable shelves
