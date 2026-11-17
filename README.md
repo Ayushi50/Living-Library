@@ -42,7 +42,7 @@ Without Supabase credentials the app stores data in browser local storage.
 | `SUPABASE_URL` | Supabase project URL |
 | `SUPABASE_ANON_KEY` | Supabase public anon key (never use a service-role key) |
 
-See [SUPABASE_SETUP.md](SUPABASE_SETUP.md) for the database schema, auth setup and redirect URLs. Set the same variables in Vercel for deployments.
+Set the same variables in Vercel for deployments.
 
 ## Project structure
 
@@ -50,7 +50,6 @@ See [SUPABASE_SETUP.md](SUPABASE_SETUP.md) for the database schema, auth setup a
 api/        Vercel serverless function (TMDB proxy)
 scripts/    Build and dev-server scripts
 src/        App source (components, views, lib)
-supabase/   Database schema
 tests/      Unit and e2e tests
 ```
 
